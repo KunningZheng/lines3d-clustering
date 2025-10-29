@@ -5,9 +5,16 @@ from skimage.draw import line
 import random
 from tqdm import tqdm
 
-def associate_lines2d_to_masks(lines3d_to_lines2d, lines2d_in_cam, camerasInfo, merged_mask_path, output_path=None):
-    
-    ## 1. line2d与mask关联
+def associate_lines2d_to_masks(lines2d_in_cam, camerasInfo, merged_mask_path, output_path=None):
+    '''
+    - Params
+        - lines2d_in_cam: dict，{cam_id：{seg_id:{'coord': (x1,y1,x2,y2), 'mask_id': -1}}}
+        - camerasInfo: dict, colmap_loader.py
+        - merged_mask_path: 
+        - output_path:
+    - Return
+        - lines2d_in_cam: update lines2d's mask information
+    '''
     for cam_id, lines2d in tqdm(lines2d_in_cam.items(), desc='Associating lines2d to masks'):
         cam_dict = camerasInfo[cam_id]
         img_name = cam_dict['img_name']
@@ -40,30 +47,39 @@ def associate_lines2d_to_masks(lines3d_to_lines2d, lines2d_in_cam, camerasInfo, 
             filename = f"{img_name}_mask_association.png"
             os.makedirs(output_path, exist_ok=True)
             cv2.imwrite(os.path.join(output_path, filename), cv2.cvtColor(visualize_img, cv2.COLOR_RGB2BGR))        
+    
+    return lines2d_in_cam   
 
 
-        
-    return lines2d
-
-
-
-    ## 3. line3d通过line2d与mask关联
+def associate_lines3d_to_masks(lines3d_to_lines2d, lines2d_in_cam):
+    '''
+    根据line3d和line2d的对应关系，将line3d与mask关联
+    - Params
+        - lines3d_to_lines2d: dict，{line3d_id: [(cam_id, seg_id)..]}
+        - lines2d_in_cam: dict，{cam_id：{seg_id:{'coord': (x1,y1,x2,y2), 'mask_id': -1}}}
+    - Returns
+        - all_lines3d_to_masks: dict, {line3d_id: {cam_id: mask_id}}
+    '''
     all_lines3d_to_masks ={}
+    print('Associating lines3d to masks...')
     for line3d_id, lines2d_ids in lines3d_to_lines2d.items():
         line3d_to_masks = {}
-        for (cam_id, line2d_id) in lines2d_ids:
-            mask_id = lines2d[(cam_id, line2d_id)]['mask']
-            line3d_to_masks[cam_id] = mask_id
+        for (cam_id, seg_id) in lines2d_ids:
+            mask_id = lines2d_in_cam[cam_id][seg_id]['mask']
+            line3d_to_masks[cam_id] = int(mask_id)
         all_lines3d_to_masks[line3d_id] = line3d_to_masks
+    return all_lines3d_to_masks
 
 
 def visualize_masked_lines(image_shape, lines2d, merged_mask):
     """
     可视化线段及其对应的mask区域（半透明填充+线段）
-    :param image_shape: 图像尺寸 (height, width)
-    :param lines2d: 字典, {seg_id: {coord: [x1,y1,x2,y2], mask: mask_id}}
-    :param merged_mask: 合并后的mask数组，形状为(height, width)
-    :return: 可视化图像 (RGB格式)
+    - Params
+        - image_shape: 图像尺寸 (height, width)
+        - lines2d: 字典, {seg_id: {coord: [x1,y1,x2,y2], mask: mask_id}}
+        - merged_mask: 合并后的mask数组，形状为(height, width)
+    - Returns
+        - 可视化图像 (RGB格式)
     """
     height, width = image_shape
     # 创建浅灰色背景 [200,200,200]
