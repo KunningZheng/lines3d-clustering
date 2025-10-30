@@ -48,6 +48,7 @@ def visualize_line_clusters(lines3d, clusters):
     # 为每个聚类生成不同颜色
     n_clusters = len(clusters)
     colors = np.random.rand(n_clusters, 3)
+    print(f"Total {n_clusters} lines3d clusters")
     
     # 添加坐标系
     coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0,0,0])
