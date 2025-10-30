@@ -22,9 +22,11 @@ if os.path.exists(lines3d_clusters_path):
     with open(lines3d_clusters_path, 'r') as f:
         loaded = json.load(f)
         lines3d_clusters = json_decode_with_int(loaded)
+    '''
     with open(masks_clusters_json_path, 'r') as f:
         loaded = json.load(f)
-        masks_clusters = json_decode_with_int(loaded)    
+        masks_clusters = json_decode_with_int(loaded)
+    '''
 else:
     # 动态导入模块
     module = importlib.import_module('clustering_methods.clustering')
@@ -35,7 +37,9 @@ else:
         lines3d_clusters, masks_clusters = clustering_function(all_lines3d_to_masks)
         # 存储mask_clusters
         with open(masks_clusters_json_path, 'w') as f:
-            json.dump(convert_sets(masks_clusters), f)        
+            json.dump(convert_sets(masks_clusters), f)
+    else:
+        lines3d_clusters = clustering_function(all_lines3d_to_masks)
     # 存储聚类结果
     lines3d_clusters_path = path_manager.get_lines3d_clusters_path(config['clustering_method'])
     with open(lines3d_clusters_path, 'w') as f:
