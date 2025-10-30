@@ -1,7 +1,18 @@
 # 自定义解码器，尝试将字符串转换为数字
 def json_decode_with_int(obj):
     if isinstance(obj, dict):
-        return {k: json_decode_with_int(v) for k, v in obj.items()}
+        new_dict = {}
+        for k, v in obj.items():
+            # 对 key 也尝试转换
+            try:
+                new_key = int(k)
+            except ValueError:
+                try:
+                    new_key = float(k)
+                except ValueError:
+                    new_key = k
+            new_dict[new_key] = json_decode_with_int(v)
+        return new_dict
     elif isinstance(obj, list):
         return [json_decode_with_int(i) for i in obj]
     elif isinstance(obj, str):

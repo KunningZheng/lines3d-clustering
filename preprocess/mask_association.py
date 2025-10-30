@@ -66,6 +66,9 @@ def associate_lines3d_to_masks(lines3d_to_lines2d, lines2d_in_cam):
         line3d_to_masks = {}
         for (cam_id, seg_id) in lines2d_ids:
             mask_id = lines2d_in_cam[cam_id][seg_id]['mask']
+            # 剔除背景ID=-1
+            if mask_id == -1:
+                continue
             line3d_to_masks[cam_id] = int(mask_id)
         all_lines3d_to_masks[line3d_id] = line3d_to_masks
     return all_lines3d_to_masks
