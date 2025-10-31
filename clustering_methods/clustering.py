@@ -25,3 +25,21 @@ def bottom_up_merging(all_lines3d_to_masks):
 
     lines_clusters = bottom_up_merging(all_mask_to_lines3d, threshold=0.5)
     return lines_clusters
+
+
+def lines_clustering(all_lines3d_to_masks):
+    from clustering_methods.lines_clustering.construction import build_similarity_graph
+    from clustering_methods.lines_clustering.graph_clustering import leiden_community
+    # 收集所有线段索引
+    all_segments = sorted(all_lines3d_to_masks.keys())
+    
+    # 创建线段索引到连续整数的映射
+    segment_to_idx = {seg: idx for idx, seg in enumerate(all_segments)}
+    idx_to_segment = {idx: seg for seg, idx in segment_to_idx.items()}
+
+    # 计算相似度矩阵
+    edges, weights, num_segments = build_similarity_graph(all_lines3d_to_masks, required_views=3, sim_threshold=0.1)
+
+    # 聚类
+    line_clusters = leiden_community(edges, weights, num_segments, idx_to_segment)
+    return line_clusters
