@@ -27,9 +27,8 @@ def bottom_up_merging(all_lines3d_to_masks):
     return lines_clusters
 
 
-def lines_clustering(all_lines3d_to_masks):
+def lines_clustering(all_lines3d_to_masks, graph_clustering):
     from clustering_methods.lines_clustering.construction import build_similarity_graph
-    from clustering_methods.lines_clustering.graph_clustering import leiden_community
     # 收集所有线段索引
     all_segments = sorted(all_lines3d_to_masks.keys())
     
@@ -41,5 +40,16 @@ def lines_clustering(all_lines3d_to_masks):
     edges, weights, num_segments = build_similarity_graph(all_lines3d_to_masks, required_views=3, sim_threshold=0.1)
 
     # 聚类
-    line_clusters = leiden_community(edges, weights, num_segments, idx_to_segment)
+    if graph_clustering == 'leiden_community':
+        from clustering_methods.lines_clustering.graph_clustering import leiden_community
+        line_clusters = leiden_community(edges, weights, num_segments, idx_to_segment)
+    elif graph_clustering == 'chinese_whispers':
+        from clustering_methods.lines_clustering.graph_clustering import chinese_whispers
+        line_clusters = chinese_whispers(edges, weights, num_segments, idx_to_segment)
+    elif graph_clustering == 'node2vec_hdbscan':
+        from clustering_methods.lines_clustering.graph_clustering import node2vec_hdbscan
+        line_clusters = node2vec_hdbscan(edges, weights, num_segments, idx_to_segment)
+    elif graph_clustering == 'direct_hdbscan':
+        from clustering_methods.lines_clustering.graph_clustering import direct_hdbscan
+        line_clusters = direct_hdbscan(edges, weights, num_segments, idx_to_segment) 
     return line_clusters

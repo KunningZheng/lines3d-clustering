@@ -15,7 +15,10 @@ path_manager = PathManager(config['workspace_path'], config['scene_name'])
 camerasInfo, lines3d, all_lines3d_to_masks = load_and_process_data(path_manager, config['k_near'])
 
 ## Apply Clustering
-lines3d_clusters_path = path_manager.get_lines3d_clusters_path(config['clustering_method'])
+if config['graph_clustering'] != '':
+    lines3d_clusters_path = path_manager.get_lines3d_clusters_path(config['clustering_method']+'_'+config['graph_clustering'])
+else:
+    lines3d_clusters_path = path_manager.get_lines3d_clusters_path(config['clustering_method'])
 masks_clusters_json_path = path_manager.get_masks_clusters_path(config['clustering_method'])
 # Clustering Results Exists
 if os.path.exists(lines3d_clusters_path):
@@ -37,6 +40,8 @@ else:
         with open(masks_clusters_json_path, 'w') as f:
             json.dump(convert_sets(masks_clusters), f)
     # Other methods will only return lines3d clusters
+    elif config['clustering_method'] == 'lines_clustering':
+        lines3d_clusters = clustering_function(all_lines3d_to_masks, config['graph_clustering'])
     else:
         lines3d_clusters = clustering_function(all_lines3d_to_masks)
     with open(lines3d_clusters_path, 'w') as f:
