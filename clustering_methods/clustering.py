@@ -53,3 +53,36 @@ def lines_clustering(all_lines3d_to_masks, graph_clustering):
         from clustering_methods.lines_clustering.graph_clustering import direct_hdbscan
         line_clusters = direct_hdbscan(edges, weights, num_segments, idx_to_segment) 
     return line_clusters
+
+
+def geometry_clustering(points3d_xyz, lines3d):
+    from clustering_methods.geometry_clustering.project_lines import project_lines
+    # 1. 估计地面平面并投影线段
+    projected_lines = project_lines(points3d_xyz, lines3d)
+
+    # 2. 计算线段之间的距离并聚类
+    from clustering_methods.geometry_clustering.line_feature import line_features
+    features = line_features(projected_lines)
+    import hdbscan
+    clusterer = hdbscan.HDBSCAN(min_cluster_size=5, metric='euclidean')
+    labels = clusterer.fit_predict(features)
+
+    #from clustering_methods.geometry_clustering.line_feature import cluster_lines_hdbscan_projection
+    #labels = cluster_lines_hdbscan_projection(projected_lines)
+
+    # 3. 可视化结果
+    from clustering_methods.geometry_clustering.project_lines import visualize_projected_lines
+    visualize_projected_lines(projected_lines, labels)
+
+    # 4. 输出聚类结果
+    lines_clusters = {}
+    for idx, label in enumerate(labels):
+        if label not in lines_clusters:
+            lines_clusters[int(label)] = []
+        lines_clusters[int(label)].append(int(idx))
+    # 剔除小于3个线段的聚类
+    lines_clusters = {k: list(v) for k, v in lines_clusters.items() if len(v) >= 3}
+    # 剔除label=-1的噪声点聚类
+    if -1 in lines_clusters:
+        del lines_clusters[-1]
+    return lines_clusters

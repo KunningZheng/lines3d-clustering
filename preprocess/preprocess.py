@@ -50,6 +50,6 @@ def load_and_process_data(path_manager, k_near):
         with open(all_lines3d_to_masks_path, 'w') as f:
             json.dump(all_lines3d_to_masks, f, indent=4)
 
-    return camerasInfo, lines3d, all_lines3d_to_masks
+    return camerasInfo, lines3d, all_lines3d_to_masks, points3d_xyz
 
 

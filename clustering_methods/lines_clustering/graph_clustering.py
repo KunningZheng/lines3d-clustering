@@ -119,7 +119,7 @@ def direct_hdbscan(edges, weights, num_segments, idx_to_segment, min_cluster_siz
         if label == -1:
             continue  # 噪声点
         seg = idx_to_segment[idx]
-        clusters.setdefault(label, set()).add(seg)
+        clusters.setdefault(int(label), set()).add(seg)
     # 剔除小于3个线段的聚类
     clusters = {k: list(v) for k, v in clusters.items() if len(v) >= 3}
     return clusters

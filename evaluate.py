@@ -322,7 +322,7 @@ def compute_averages(aps):
 
 if __name__ == "__main__":
     gt_file = '/home/rylynn/Pictures/Clustering_Workspace/Shanghai_Region5/Groundtruth/lines3d_clusters_gt.json'
-    pred_file = '/home/rylynn/Pictures/Clustering_Workspace/Shanghai_Region5/intermediate_outputs/lines3d_clusters_mask_clustering.json'
+    pred_file = '/home/rylynn/Pictures/Clustering_Workspace/Shanghai_Region5/intermediate_outputs/lines3d_clusters_lines_clustering_feature2_HDBSCAN.json'
     line3dpp_path = '/home/rylynn/Pictures/Clustering_Workspace/Shanghai_Region5/Line3D++'
     lines3d, _, _ = parse_lines3dpp(line3dpp_path)
 
