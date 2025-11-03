@@ -6,7 +6,7 @@ def get_config():
         'workspace_path': '/home/rylynn/Pictures/Clustering_Workspace',
         'scene_name': 'Shanghai_Region5',
         'k_near': 10,
-        'clustering_method': 'geometry_clustering',
+        'clustering_method': 'bottom_up_merging',
         'graph_clustering': ''
     }
     print("Configuration parameters:")

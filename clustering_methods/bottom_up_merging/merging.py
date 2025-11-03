@@ -1,4 +1,4 @@
-from clustering_methods.bottom_up_merging.bidirectional_merging import bidirectional_merging
+from clustering_methods.bottom_up_merging.enhanced_bidirectional_merging import bidirectional_merging
 from collections import defaultdict
 
 def init_merging(all_lines3d_to_masks_):

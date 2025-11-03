@@ -8,22 +8,22 @@ def bidirectional_merging(cam_id1, cam_id2, merged_results, threshold):
     # cam2 --> new_cam1，用new_cam1的标签体系更新cam2的标签
     new_cam2 = undirectional_merging(merged_results[cam_id2], new_cam1, threshold)
 
-    # 合并new_cam1和new_cam2
-    merged_cam = merge_dicts_sets(new_cam1, new_cam2)
+    # test:合并new_cam2中交集大于3的两类
 
-    return merged_cam
+    return new_cam2
 
 
 def undirectional_merging(view1, view2, threshold):
     '''
     view1 --> view2, 用view2的标签体系更新view1的标签, 输出new_view1
-    '''
-    new_view1 = view1.copy()
+    '''    
+    new_view = view2.copy()
     for mask_id1, lines3d_list1 in view1.items():
         num_lines1 = len(lines3d_list1)
         mask_id2_record = {}
 
-        for mask_id2, lines3d_list2 in view2.items():
+        view2_temp = new_view.copy()
+        for mask_id2, lines3d_list2 in view2_temp.items():
             num_lines2 = len(lines3d_list2)
             # mask1和mask2的lines3d交集
             common_lines = lines3d_list1.intersection(lines3d_list2)
@@ -37,24 +37,16 @@ def undirectional_merging(view1, view2, threshold):
                 if ratio > threshold:
                     best_mask_id2.append(mask_id2)
             if len(best_mask_id2) != 0:
-                # 将mask_id1统一为第一个best_mask_id2中
+                # 将所有的best_mask_id2和mask_id1一起合并到第一个best_mask_id2中
                 mask_id2 = best_mask_id2[0]
-                new_view1[mask_id2] = view1[mask_id1]
-                del new_view1[mask_id1]
-    
-    return new_view1
+                new_view[mask_id2].update(view1[mask_id1])
+                for id in best_mask_id2[1:]:
+                    new_view[mask_id2].update(view2_temp[id])
+                    if id in new_view:
+                        del new_view[id]
+            # 没有大于阈值的，在view2没有对应的mask，直接合并到view2中
+            else:
+                new_view[mask_id1] = view1[mask_id1]                
 
-
-def merge_dicts_sets(dict1, dict2):
-    """合并两个字典，相同key的集合合并"""
-    result = dict1.copy()  # 复制第一个字典
     
-    for key, value in dict2.items():
-        if key in result:
-            # 如果key存在，合并集合
-            result[key] = result[key] | value  # 或者使用 result[key].union(value)
-        else:
-            # 如果key不存在，直接添加
-            result[key] = value
-    
-    return result
+    return new_view
