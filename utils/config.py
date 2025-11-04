@@ -6,8 +6,8 @@ def get_config():
         'workspace_path': '/home/rylynn/Pictures/Clustering_Workspace',
         'scene_name': 'Shanghai_Region5',
         'k_near': 10,
-        'clustering_method': 'bottom_up_merging',
-        'graph_clustering': ''
+        'clustering_method': 'lines_clustering',
+        'graph_clustering': 'leiden_community'
     }
     print("Configuration parameters:")
     for key, value in config.items():
@@ -15,6 +15,16 @@ def get_config():
     print("==============================================================================")
     return config
 
+def get_config_eval():
+    """Return configuration parameters for the clustering process."""
+    config = {
+        'workspace_path': '/home/rylynn/Pictures/Clustering_Workspace',
+        'scene_name': 'Shanghai_Region5',
+        'k_near': 10,
+        'clustering_method': 'lines_clustering',
+        'graph_clustering': 'leiden_community'
+    }
+    return config
 
 class PathManager:
     def __init__(self, workspace_path, scene_name):

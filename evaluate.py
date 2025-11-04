@@ -1,7 +1,9 @@
 import json
 import numpy as np
+import matplotlib.pyplot as plt
 from preprocess.line3dpp_loader import parse_lines3dpp
 from utils.json2dict import json_decode_with_int
+from utils.config import get_config_eval, PathManager
 
 ##--------------- Evaluation Parameters ---------------##
 OVERLAPS = np.append(np.arange(0.5, 0.95, 0.05), 0.25) # IoU阈值
@@ -54,6 +56,11 @@ def assign_instances(gt_file, lines3d, pred_file):
         lines3d_clusters_gt = json.load(f)
     # convert keys to int
     lines3d_clusters_gt = json_decode_with_int(lines3d_clusters_gt)
+    # 单独提取背景 (-1 标签)
+    void_gt_ids = lines3d_clusters_gt.get(-1, [])
+    void_gt_ids = np.array(void_gt_ids) if len(void_gt_ids) > 0 else np.array([])
+    # 构建实例前剔除背景
+    del(lines3d_clusters_gt[-1])
     # 提取真实实例信息
     gt_instances = get_instances(lines3d_clusters_gt, lines3d)
 
@@ -76,6 +83,13 @@ def assign_instances(gt_file, lines3d, pred_file):
     for pred_inst_id, pred_inst in pred_instances.items():
         pred_ids = np.array(pred_inst['lines_ids'])
         matched_gt = []  # 当前预测匹配的真实实例
+        # 计算与背景的交集
+        if len(void_gt_ids) > 0:
+            void_intersection = len(np.intersect1d(pred_ids, void_gt_ids))
+        else:
+            void_intersection = 0
+        pred_inst['void_intersection'] = void_intersection        
+        # 计算与gt实例的交集
         # go thru all gt instances with matching label
         for gt_inst_id, gt_inst in gt2pred.items():
             gt_ids = np.array(gt_inst['lines_ids'])
@@ -207,13 +221,15 @@ def evaluate_matches(match):
                     # if not ignored append false positive
                     if proportion_ignore <= overlap_th:
                     '''
-                    # 直接视为FP
-                    cur_true = np.append(cur_true, 0)  # FP标签
-                    if 'confidence' in pred:
-                        confidence = pred['confidence']
-                    else:
-                        confidence = 0.0 # 没有置信度信息时，设为0
-                    cur_score = np.append(cur_score, confidence)  # 置信度
+                    proportion_ignore = pred['void_intersection'] / pred['lines_count']
+                    # 如果无法忽略，则视为FP
+                    if proportion_ignore <= overlap_th:
+                        cur_true = np.append(cur_true, 0)  # FP标签
+                        if 'confidence' in pred:
+                            confidence = pred['confidence']
+                        else:
+                            confidence = 0.0 # 没有置信度信息时，设为0
+                        cur_score = np.append(cur_score, confidence)  # 置信度
 
             # 添加到总体结果
             # append to overall results
@@ -278,7 +294,57 @@ def evaluate_matches(match):
     return ap
 
 
-def print_results(avgs):
+def visualize_pr_curve(match):
+    """
+    在 evaluate_matches 的结果基础上绘制精确率-召回率曲线
+    """
+    overlaps = np.append(np.arange(0.5, 0.95, 0.05), 0.25)
+    pr_data = {}
+
+    for overlap_th in overlaps:
+        y_true = np.empty(0)
+        y_score = np.empty(0)
+        gt_instances = match['gt']
+        pred_instances = match['pred']
+
+        # 收集预测结果
+        for gt in gt_instances.values():
+            for pred in gt['matched_pred']:
+                overlap = float(pred['intersection']) / (
+                    gt['lines_count'] + pred['lines_count'] - pred['intersection'])
+                if overlap > overlap_th:
+                    conf = pred.get('confidence', 0.0)
+                    y_true = np.append(y_true, 1)
+                    y_score = np.append(y_score, conf)
+                else:
+                    conf = pred.get('confidence', 0.0)
+                    y_true = np.append(y_true, 0)
+                    y_score = np.append(y_score, conf)
+
+        # 如果没有匹配数据则跳过
+        if len(y_true) == 0:
+            continue
+
+        # 计算精确率-召回率曲线
+        from sklearn.metrics import precision_recall_curve, auc
+        precision, recall, _ = precision_recall_curve(y_true, y_score)
+        pr_auc = auc(recall, precision)
+        pr_data[overlap_th] = (precision, recall, pr_auc)
+
+    # 绘制图像
+    plt.figure(figsize=(8, 6))
+    for overlap_th, (precision, recall, pr_auc) in pr_data.items():
+        plt.plot(recall, precision, label=f'IoU={overlap_th:.2f} (AUC={pr_auc:.3f})')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+
+def print_results(avgs, method_name):
     from utils.log import logger
     sep     = ""
     col1    = ":"
@@ -286,13 +352,15 @@ def print_results(avgs):
 
     logger.info("")
     logger.info("#" * lineLen)
+    logger.info(f"Evaluation Results for Method: {method_name}")
+    logger.info("#" * lineLen)
     line  = ""
     line += "{:<15}".format("what"      ) + sep + col1
     line += "{:>15}".format("AP"        ) + sep
     line += "{:>15}".format("AP_50%"    ) + sep
     line += "{:>15}".format("AP_25%"    ) + sep
     logger.info(line)
-    logger.info("#" * lineLen)
+    #logger.info("#" * lineLen)
 
     all_ap_avg  = avgs["all_ap"]
     all_ap_50o  = avgs["all_ap_50%"]
@@ -321,8 +389,17 @@ def compute_averages(aps):
 
 
 if __name__ == "__main__":
+    config = get_config_eval()
+    path_manager = PathManager(config['workspace_path'], config['scene_name'])
+    if config['graph_clustering'] != '':
+        method_name = f"{config['clustering_method']}_{config['graph_clustering']}"
+        pred_file = path_manager.get_lines3d_clusters_path(config['clustering_method']+'_'+config['graph_clustering'])
+    else:
+        method_name = f"{config['clustering_method']}"
+        pred_file = path_manager.get_lines3d_clusters_path(config['clustering_method'])
+    
+
     gt_file = '/home/rylynn/Pictures/Clustering_Workspace/Shanghai_Region5/Groundtruth/lines3d_clusters_gt.json'
-    pred_file = '/home/rylynn/Pictures/Clustering_Workspace/Shanghai_Region5/intermediate_outputs/lines3d_clusters_bottom_up_merging.json'
     line3dpp_path = '/home/rylynn/Pictures/Clustering_Workspace/Shanghai_Region5/Line3D++'
     lines3d, _, _ = parse_lines3dpp(line3dpp_path)
 
@@ -333,4 +410,5 @@ if __name__ == "__main__":
 
     ap_scores = evaluate_matches(matches)
     avgs = compute_averages(ap_scores)
-    print_results(avgs)
+    print_results(avgs, method_name)
+    #visualize_pr_curve(matches)
