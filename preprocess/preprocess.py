@@ -40,12 +40,27 @@ def load_and_process_data(path_manager, k_near):
     else:
         # Associate 2D line to masks
         visualize_path = os.path.join(path_manager.intermediate_output_path, 'mask_lines2d')
-        lines2d_in_cam = associate_lines2d_to_masks(lines2d_in_cam, camerasInfo, 
-                                            path_manager.merged_mask_path, output_path=None)
+        lines2d_in_cam, mask_color_dict = associate_lines2d_to_masks(lines2d_in_cam, camerasInfo, 
+                                            path_manager.merged_mask_path, path_manager.images_path, output_path=visualize_path)
 
         # Associate 3D line to masks through 2D-3D relation
         all_lines3d_to_masks = associate_lines3d_to_masks(lines3d_to_lines2d, lines2d_in_cam)
         
+        '''
+        # DEBUG: 可视化各视角的line3d
+        from utils.lines_tools import visualize_line_clusters2
+        from collections import defaultdict
+        all_lines3d_to_masks2 = defaultdict(lambda: defaultdict(set))
+        for line3d_id, line3d_to_mask in all_lines3d_to_masks.items():
+            for cam_id, mask_id in line3d_to_mask.items():
+                all_lines3d_to_masks2[cam_id][mask_id].add(line3d_id)
+        lines3d_to_mask = all_lines3d_to_masks2[49]
+        visualize_line_clusters2(lines3d, lines3d_to_mask, colors_option=mask_color_dict[49], line_radius=0.01)
+        lines3d_to_mask = all_lines3d_to_masks2[50]
+        visualize_line_clusters2(lines3d, lines3d_to_mask, colors_option=mask_color_dict[50], line_radius=0.01)
+        lines3d_to_mask = all_lines3d_to_masks2[51]
+        visualize_line_clusters2(lines3d, lines3d_to_mask, colors_option=mask_color_dict[51], line_radius=0.01)
+        '''
         # Save Results in json
         with open(all_lines3d_to_masks_path, 'w') as f:
             json.dump(all_lines3d_to_masks, f, indent=4)

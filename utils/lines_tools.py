@@ -90,6 +90,86 @@ def visualize_line_clusters(lines3d, clusters):
     vis.destroy_window()
 
 
+
+def line_to_cylinder(p1, p2, radius=0.02, color=[1, 0, 0]):
+    """
+    将一条线段转换为圆柱体，可控粗细且精确对齐两端点。
+    """
+    direction = p2 - p1
+    height = np.linalg.norm(direction)
+    if height < 1e-8:
+        return None
+
+    # 创建圆柱，中心在原点，沿Z轴方向，高度为 height
+    cylinder = o3d.geometry.TriangleMesh.create_cylinder(radius=radius, height=height, resolution=20)
+    cylinder.paint_uniform_color(color)
+
+    # 旋转：Z轴 -> direction
+    direction /= height
+    z_axis = np.array([0, 0, 1])
+    axis = np.cross(z_axis, direction)
+    if np.linalg.norm(axis) < 1e-8:
+        R = np.eye(3)
+    else:
+        axis /= np.linalg.norm(axis)
+        angle = np.arccos(np.clip(np.dot(z_axis, direction), -1.0, 1.0))
+        R = o3d.geometry.get_rotation_matrix_from_axis_angle(axis * angle)
+
+    cylinder.rotate(R, center=np.zeros(3))
+
+    # 平移到中点位置（注意 cylinder 默认中心在原点）
+    mid_point = (p1 + p2) / 2.0
+    cylinder.translate(mid_point)
+
+    return cylinder
+
+
+def visualize_line_clusters2(lines3d, clusters, colors_option = None, line_radius=0.02):
+    """
+    使用圆柱可视化聚类线段，可控制粗细。
+    """
+    vis = o3d.visualization.Visualizer()
+    vis.create_window(window_name='3D Line Clusters', width=1200, height=800)
+    
+    n_clusters = len(clusters)
+    if colors_option == None:
+        colors = np.random.rand(n_clusters, 3)
+    else:
+        colors = colors_option
+    print(f"Total {n_clusters} clusters")
+
+    # 添加坐标系
+    coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0, 0, 0])
+    vis.add_geometry(coordinate_frame)
+
+    # 遍历聚类
+    for i, (cluster_id, line_data) in enumerate(clusters.items()):
+        if colors_option == None:
+            color = colors[i]
+        else:
+            # 从256转成0-1范围
+            color = [c/255.0 for c in colors[cluster_id]]
+        for line_id in line_data:
+            x1, y1, z1, x2, y2, z2 = lines3d[line_id]
+            p1 = np.array([x1, y1, z1])
+            p2 = np.array([x2, y2, z2])
+            cylinder = line_to_cylinder(p1, p2, radius=line_radius, color=color)
+            if cylinder is not None:
+                vis.add_geometry(cylinder)
+
+    # 渲染选项
+    render_option = vis.get_render_option()
+    render_option.background_color = np.array([1, 1, 1])
+    render_option.mesh_show_back_face = True
+
+    ctr = vis.get_view_control()
+    ctr.set_zoom(0.8)
+
+    vis.run()
+    vis.destroy_window()
+
+
+
 def cull_by_fov(R_cw, T_cw, lines3d, max_angle=np.deg2rad(60)):
     # 相机视线方向
     cam_center = T_cw

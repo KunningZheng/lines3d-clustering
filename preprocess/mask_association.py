@@ -5,16 +5,19 @@ from skimage.draw import line
 import random
 from tqdm import tqdm
 
-def associate_lines2d_to_masks(lines2d_in_cam, camerasInfo, merged_mask_path, output_path=None):
+def associate_lines2d_to_masks(lines2d_in_cam, camerasInfo, merged_mask_path, images_path, output_path=None):
     '''
     - Params
         - lines2d_in_cam: dict，{cam_id：{seg_id:{'coord': (x1,y1,x2,y2), 'mask_id': -1}}}
         - camerasInfo: dict, colmap_loader.py
         - merged_mask_path: 
+        - images_path:
         - output_path:
     - Return
         - lines2d_in_cam: update lines2d's mask information
+        - mask_color_dict: 存储颜色
     '''
+    mask_color_dict = {}
     for cam_id, lines2d in tqdm(lines2d_in_cam.items(), desc='Associating lines2d to masks'):
         cam_dict = camerasInfo[cam_id]
         img_name = cam_dict['img_name']
@@ -24,6 +27,12 @@ def associate_lines2d_to_masks(lines2d_in_cam, camerasInfo, merged_mask_path, ou
         mask_path = os.path.join(merged_mask_path, img_name + '_maskraw.png')
         merged_mask = cv2.imread(mask_path, cv2.IMREAD_UNCHANGED)
         merged_mask = merged_mask.astype(np.int16) - 1  # 转回原始ID，背景为-1
+
+        if merged_mask.shape[0] != H or merged_mask.shape[1] != W:
+            merged_mask = cv2.resize(merged_mask, (W, H), interpolation=cv2.INTER_NEAREST)
+        # 读取当前航片
+        image_path = os.path.join(images_path, img_name + '.png')
+        image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)        
 
         for seg_id, line2d in lines2d.items():
             x1, y1, x2, y2 = line2d['coord']
@@ -42,13 +51,15 @@ def associate_lines2d_to_masks(lines2d_in_cam, camerasInfo, merged_mask_path, ou
         
         # 可视化线段和mask的关联关系
         if output_path:
-            merged_mask_resized = cv2.resize(merged_mask, (W, H), interpolation=cv2.INTER_NEAREST)
-            visualize_img = visualize_masked_lines((H, W), lines2d, merged_mask_resized)
+            visualize_img, visualize_img_mask, color_dict = visualize_masked_lines((H, W), lines2d, merged_mask, image)
+            mask_color_dict[cam_id] = color_dict
             filename = f"{img_name}_mask_association.png"
             os.makedirs(output_path, exist_ok=True)
             cv2.imwrite(os.path.join(output_path, filename), cv2.cvtColor(visualize_img, cv2.COLOR_RGB2BGR))        
-    
-    return lines2d_in_cam   
+            filename = f"{img_name}_mask.png"
+            os.makedirs(output_path, exist_ok=True)
+            cv2.imwrite(os.path.join(output_path, filename), cv2.cvtColor(visualize_img_mask, cv2.COLOR_RGB2BGR))     
+    return lines2d_in_cam, mask_color_dict   
 
 
 def associate_lines3d_to_masks(lines3d_to_lines2d, lines2d_in_cam):
@@ -74,13 +85,14 @@ def associate_lines3d_to_masks(lines3d_to_lines2d, lines2d_in_cam):
     return all_lines3d_to_masks
 
 
-def visualize_masked_lines(image_shape, lines2d, merged_mask):
+def visualize_masked_lines(image_shape, lines2d, merged_mask, image):
     """
     可视化线段及其对应的mask区域（半透明填充+线段）
     - Params
         - image_shape: 图像尺寸 (height, width)
         - lines2d: 字典, {seg_id: {coord: [x1,y1,x2,y2], mask: mask_id}}
         - merged_mask: 合并后的mask数组，形状为(height, width)
+        - image: 原始航片
     - Returns
         - 可视化图像 (RGB格式)
     """
@@ -123,6 +135,8 @@ def visualize_masked_lines(image_shape, lines2d, merged_mask):
     # 将mask层与原图混合（alpha混合）
     img = cv2.addWeighted(img, 1 - mask_alpha, mask_layer, mask_alpha, 0)
     
+    img_mask = cv2.addWeighted(image, 1 - 0.7, mask_layer, 0.7, 0)    
+    
     # 再绘制所有线段（不透明）
     for seg_id, seg_data in lines2d.items():
         coord = seg_data['coord']  # [x1, y1, x2, y2]
@@ -133,6 +147,6 @@ def visualize_masked_lines(image_shape, lines2d, merged_mask):
         # 注意坐标顺序转换 (x,y格式)
         pt1 = (int(round(coord[0])), int(round(coord[1])))  # (x1, y1)
         pt2 = (int(round(coord[2])), int(round(coord[3])))  # (x2, y2)
-        cv2.line(img, pt1, pt2, color_dict[mask_id], thickness=2)
+        cv2.line(img, pt1, pt2, color_dict[mask_id], thickness=4)
     
-    return img
+    return img, img_mask, color_dict
