@@ -313,8 +313,8 @@ def visualize_line3d(lines3d, line3d_ids):
     vis.create_window(window_name='3D Line Clusters', width=1200, height=800)
     
     # 添加坐标系
-    coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0,0,0])
-    vis.add_geometry(coordinate_frame)
+    #coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=[0,0,0])
+    #vis.add_geometry(coordinate_frame)
     
     # 可视化所有线段
     line_set = o3d.geometry.LineSet()
@@ -342,3 +342,17 @@ def visualize_line3d(lines3d, line3d_ids):
     # 运行可视化
     vis.run()
     vis.destroy_window()
+
+
+# 可视化线段聚类数量分布直方图
+def lines_clusters_histogram(lines3d_clusters):
+    cluster_sizes = [len(line_ids) for line_ids in lines3d_clusters.values()]
+    # 超过100的聚类不显示
+    cluster_sizes = [size for size in cluster_sizes if size > 1]
+    plt.figure(figsize=(8, 6))
+    plt.hist(cluster_sizes, bins=30, color='blue', alpha=0.7)
+    plt.xlabel('Cluster Size (Number of Lines)')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of 3D Line Clusters Sizes')
+    plt.grid(True)
+    plt.show()

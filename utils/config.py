@@ -6,8 +6,8 @@ def get_config():
         'workspace_path': '/home/rylynn/Pictures/Clustering_Workspace',
         'scene_name': 'Shanghai_Region5',
         'k_near': 10,
-        'clustering_method': 'bottom_up_merging',
-        'graph_clustering': ''
+        'clustering_method': 'lines_clustering',
+        'graph_clustering': 'leiden_community'
     }
     print("Configuration parameters:")
     for key, value in config.items():
@@ -21,8 +21,8 @@ def get_config_eval():
         'workspace_path': '/home/rylynn/Pictures/Clustering_Workspace',
         'scene_name': 'Shanghai_Region5',
         'k_near': 10,
-        'clustering_method': 'bottom_up_merging',
-        'graph_clustering': ''
+        'clustering_method': 'lines_clustering',
+        'graph_clustering': 'leiden_community'
     }
     return config
 
@@ -53,7 +53,7 @@ class PathManager:
     
     @property
     def merged_mask_path(self):
-        return os.path.join(self.workspace_path, self.scene_name, 'SAM_Mask', 'Merged_Mask')
+        return os.path.join(self.workspace_path, self.scene_name, 'SAM_Mask_IoU', 'Merged_Mask')
     
     @property
     def intermediate_output_path(self):
