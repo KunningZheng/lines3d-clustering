@@ -23,7 +23,7 @@ def load_and_process_data(path_manager, k_near):
     camerasInfo, points_in_images, points3d_xyz = load_sparse_model(path_manager.sparse_model_path)
     
     # Compute match matrix
-    #match_matrix = match_pair(camerasInfo, points_in_images, k_near=k_near)
+    match_matrix = match_pair(camerasInfo, points_in_images, k_near=k_near)
     
     # Parse 3D line segments
     lines3d, lines3d_to_lines2d, lines2d_in_cam = parse_lines3dpp(path_manager.line3dpp_path)
@@ -132,6 +132,6 @@ def load_and_process_data(path_manager, k_near):
         json.dump(lines3d_clusters_gt, f, indent=4)    
     visualize_line_clusters(lines3d, lines3d_clusters_gt)
     '''
-    return camerasInfo, lines3d, all_lines3d_to_masks, points3d_xyz
+    return camerasInfo, match_matrix, lines3d, all_lines3d_to_masks, points3d_xyz
 
 

@@ -12,7 +12,7 @@ config = get_config()
 path_manager = PathManager(config['workspace_path'], config['scene_name'])
 
 ## Load and process data
-camerasInfo, lines3d, all_lines3d_to_masks, points3d_xyz = load_and_process_data(path_manager, config['k_near'])
+camerasInfo, match_matrix, lines3d, all_lines3d_to_masks, points3d_xyz = load_and_process_data(path_manager, config['k_near'])
 
 ## Apply Clustering
 if config['graph_clustering'] != '':
@@ -44,6 +44,8 @@ else:
         lines3d_clusters = clustering_function(all_lines3d_to_masks, config['graph_clustering'])
     elif config['clustering_method'] == 'geometry_clustering':
         lines3d_clusters = clustering_function(points3d_xyz, lines3d)
+    elif config['clustering_method'] == 'voting_based_clustering':
+        lines3d_clusters = clustering_function(all_lines3d_to_masks, match_matrix)
     else:
         lines3d_clusters = clustering_function(all_lines3d_to_masks)
     with open(lines3d_clusters_path, 'w') as f:

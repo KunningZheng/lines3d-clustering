@@ -86,3 +86,11 @@ def geometry_clustering(points3d_xyz, lines3d):
     if -1 in lines_clusters:
         del lines_clusters[-1]
     return lines_clusters
+
+
+def voting_based_clustering(all_lines3d_to_masks, match_matrix):
+    from clustering_methods.voting_based_clustering.voting import voting_by_masks, masks_clustering, lines_clustering
+    all_masks_association, all_masks_to_lines3d = voting_by_masks(all_lines3d_to_masks, match_matrix)
+    masks_clusters = masks_clustering(all_masks_association)
+    lines_clusters = lines_clustering(masks_clusters, all_masks_to_lines3d)
+    return lines_clusters
