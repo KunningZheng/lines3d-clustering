@@ -6,8 +6,8 @@ def get_config():
         'workspace_path': '/home/rylynn/Pictures/Clustering_Workspace',
         'scene_name': 'Shanghai_Region5',
         'k_near': 10,
-        'clustering_method': 'voting_based_clustering',
-        'graph_clustering': ''
+        'clustering_method': 'lines_clustering',
+        'graph_clustering': 'leiden_community'
     }
     print("Configuration parameters:")
     for key, value in config.items():
